@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VC Signal — Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&family=Inconsolata:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300,0&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100vh; overflow: hidden; }
+  body { font-family: 'Urbanist', sans-serif; background: #EFEFEF; color: #252525; -webkit-font-smoothing: antialiased; display: flex; }
+
+  .mono { font-family: 'Inconsolata', monospace; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; vertical-align: middle; line-height: 1; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: 208px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(198,198,198,0.18); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 2px; cursor: pointer; font-size: 13px; font-weight: 500; color: #8A8A8A; transition: all 0.12s; margin-bottom: 1px; user-select: none; }
+  .nav-item:hover { background: #F5F5F5; color: #252525; }
+  .nav-item.active { background: #252525; color: #fff; }
+  .nav-item .nav-chevron { margin-left: auto; font-size: 14px; transition: transform 0.15s; }
+  .nav-item.open .nav-chevron { transform: rotate(180deg); }
+  .nav-sub { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
+  .nav-sub.open { max-height: 200px; }
+  .nav-sub-item { display: flex; align-items: center; gap: 7px; padding: 5px 10px 5px 34px; border-radius: 2px; cursor: pointer; font-size: 12px; color: #A5A5A5; transition: all 0.1s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 1px; }
+  .nav-sub-item:hover { background: #F5F5F5; color: #474747; }
+  .nav-divider { height: 1px; background: rgba(198,198,198,0.15); margin: 8px 0; }
+
+  /* ── Chips ── */
+  .chip-green  { background: #dcfce7; color: #15803d; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; font-family: 'Inconsolata', monospace; white-space: nowrap; display: inline-block; }
+  .chip-yellow { background: #fef9c3; color: #a16207; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; font-family: 'Inconsolata', monospace; white-space: nowrap; display: inline-block; }
+  .chip-red    { background: #fee2e2; color: #b91c1c; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; font-family: 'Inconsolata', monospace; white-space: nowrap; display: inline-block; }
+
+  /* ── Buttons ── */
+  .btn-primary { background: #252525; color: #fff; border-radius: 2px; font-family: 'Inconsolata', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 10px 20px; cursor: pointer; border: none; white-space: nowrap; transition: background 0.12s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary:hover { background: #3D3D3D; }
+  .btn-ghost { background: transparent; color: #474747; border-radius: 2px; font-family: 'Inconsolata', monospace; font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 9px; cursor: pointer; border: none; white-space: nowrap; transition: background 0.1s; display: inline-flex; align-items: center; gap: 4px; }
+  .btn-ghost:hover { background: #EEEEEE; }
+
+  /* ── Search bar (matches signal-results.html) ── */
+  .search-bar { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(198,198,198,0.2); }
+  .search-bar input { flex: 1; font-family: 'Inconsolata', monospace; font-size: 13px; background: transparent; border: none; color: #252525; }
+  .search-bar input::placeholder { color: #C8C8C8; font-family: 'Inconsolata', monospace; }
+  .search-bar input:focus { outline: none; }
+
+  /* ── File tabs ── */
+  .file-tab { font-family: 'Inconsolata', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 15px; border-radius: 3px 3px 0 0; cursor: pointer; border: 1px solid rgba(198,198,198,0.18); border-bottom: none; margin-bottom: -1px; position: relative; z-index: 2; transition: all 0.1s; }
+  .file-tab.active   { background: #fff; color: #252525; font-weight: 700; }
+  .file-tab.inactive { background: #E8E8E8; color: #8A8A8A; border-color: rgba(198,198,198,0.12); }
+  .file-tab.inactive:hover { background: #E0E0E0; color: #474747; }
+
+  /* ── Panels ── */
+  .panel { background: #fff; border: 1px solid rgba(198,198,198,0.18); border-radius: 0 3px 3px 3px; position: relative; z-index: 1; }
+  .panel-bare { background: #fff; border: 1px solid rgba(198,198,198,0.18); border-radius: 3px; }
+
+  /* ── Company rows ── */
+  .company-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid rgba(198,198,198,0.1); cursor: pointer; transition: background 0.1s; }
+  .company-row:hover { background: #FAFAFA; }
+  .company-row:last-child { border-bottom: none; }
+  .company-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── IP rows ── */
+  .ip-row { display: grid; grid-template-columns: 110px 1fr 70px 100px 55px; gap: 10px; align-items: center; padding: 9px 14px; border-bottom: 1px solid rgba(198,198,198,0.1); }
+  .ip-row:last-child { border-bottom: none; }
+  .ip-row:hover { background: #FAFAFA; }
+
+  /* ── Project cards ── */
+  .project-card { background: #fff; border: 1px solid rgba(198,198,198,0.18); border-radius: 3px; padding: 12px 14px; cursor: pointer; transition: border-color 0.12s; }
+  .project-card:hover { border-color: rgba(100,100,100,0.25); }
+  .project-card.selected { border-color: #252525; }
+  .project-card.archived { opacity: 0.65; }
+  .project-card.archived:hover { border-color: rgba(100,100,100,0.2); opacity: 0.8; }
+  .project-tag { font-family: 'Inconsolata', monospace; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; background: #F0F0F0; color: #8A8A8A; }
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; padding: 12px 14px; }
+
+  /* ── Timeline ── */
+  .timeline-wrap { padding: 6px 0; }
+  .timeline-entry { display: flex; align-items: stretch; cursor: pointer; transition: background 0.1s; }
+  .timeline-entry:hover { background: #FAFAFA; }
+  .timeline-time { font-family: 'Inconsolata', monospace; font-size: 9px; color: #C0C0C0; width: 54px; flex-shrink: 0; text-align: right; padding: 7px 10px 0 14px; line-height: 1; }
+  .timeline-spine { display: flex; flex-direction: column; align-items: center; width: 18px; flex-shrink: 0; }
+  .timeline-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+  .timeline-connector { width: 1px; flex: 1; background: rgba(198,198,198,0.25); min-height: 10px; margin-top: 2px; }
+  .timeline-entry:last-child .timeline-connector { display: none; }
+  .timeline-body { flex: 1; padding: 5px 14px 8px 8px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #D5D5D5; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════ -->
+<aside class="sidebar">
+
+  <!-- Logo + nav -->
+  <div style="padding:22px 16px 12px;flex:1;overflow-y:auto;min-height:0;">
+
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:26px;">
+      <img src="../assets/logo/tis_cubelogo_submark_dark.svg" alt="TIS" style="height:20px;width:auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+      <span style="display:none;font-family:Inconsolata,monospace;font-weight:700;font-size:11px;letter-spacing:0.2em;">TIS</span>
+      <div style="width:1px;height:14px;background:rgba(198,198,198,0.3);"></div>
+      <span class="mono" style="font-size:8px;letter-spacing:0.28em;color:#A5A5A5;text-transform:uppercase;">VC Signal</span>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="nav-item active">
+      <span class="material-symbols-outlined" style="font-size:16px;">dashboard</span>
+      Dashboard
+    </div>
+
+    <!-- Saved Projects (expandable) -->
+    <div class="nav-item" id="nav-projects-toggle" onclick="toggleProjectsNav()">
+      <span class="material-symbols-outlined" style="font-size:16px;">folder</span>
+      Saved Projects
+      <span class="material-symbols-outlined nav-chevron">expand_more</span>
+    </div>
+    <div class="nav-sub" id="nav-projects-sub">
+      <div class="nav-sub-item">Battery IP Deep Dive</div>
+      <div class="nav-sub-item">Q2 Portfolio Review</div>
+      <div class="nav-sub-item">FTO Clearance — Client A</div>
+      <div class="nav-sub-item">Edge AI Whitespace Map</div>
+    </div>
+
+    <!-- Saved Companies -->
+    <div class="nav-item">
+      <span class="material-symbols-outlined" style="font-size:16px;">business</span>
+      Saved Companies
+    </div>
+
+    <!-- Archived Projects -->
+    <div class="nav-item">
+      <span class="material-symbols-outlined" style="font-size:16px;">inventory_2</span>
+      Archived Projects
+    </div>
+
+    <!-- Search History -->
+    <div class="nav-item">
+      <span class="material-symbols-outlined" style="font-size:16px;">history</span>
+      Search History
+    </div>
+
+  </div>
+
+  <!-- Account + Settings + Token (bottom-aligned) -->
+  <div style="flex-shrink:0;">
+    <div style="padding:0 16px 4px;">
+      <div class="nav-divider" style="margin-top:0;"></div>
+      <div class="nav-item">
+        <span class="material-symbols-outlined" style="font-size:16px;">account_circle</span>
+        Account
+      </div>
+      <div class="nav-item">
+        <span class="material-symbols-outlined" style="font-size:16px;">settings</span>
+        Settings
+      </div>
+    </div>
+    <!-- Token meter -->
+    <div style="padding:12px 16px;border-top:1px solid rgba(198,198,198,0.12);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <span class="mono" style="font-size:8px;color:#A5A5A5;text-transform:uppercase;letter-spacing:0.12em;">Tokens</span>
+        <span class="mono" style="font-size:9px;font-weight:700;color:#252525;">622 <span style="font-weight:400;color:#A5A5A5;">/ 888</span></span>
+      </div>
+      <div style="background:#EBEBEB;height:3px;border-radius:1px;">
+        <div style="width:70%;height:100%;background:#252525;border-radius:1px;"></div>
+      </div>
+      <span class="mono" style="font-size:8px;color:#C0C0C0;margin-top:5px;display:block;">266 remaining this month</span>
+    </div>
+  </div>
+
+</aside>
+
+
+<!-- ════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════ -->
+<div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;height:100vh;min-width:0;">
+
+  <!-- ── WELCOME BAR ── -->
+  <div style="padding:20px 24px 0;flex-shrink:0;">
+    <div style="background:#fff;border:1px solid rgba(198,198,198,0.18);border-radius:3px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div>
+        <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.18em;display:block;margin-bottom:4px;">Good morning</span>
+        <div style="font-size:17px;font-weight:700;color:#252525;line-height:1.2;margin-bottom:6px;">Welcome back, Miko</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="mono" style="font-size:10px;color:#A5A5A5;">Last signal:</span>
+          <span class="mono" style="font-size:10px;color:#252525;font-weight:600;">Voltara Systems</span>
+          <span style="font-size:9px;color:#C0C0C0;">·</span>
+          <span class="mono" style="font-size:10px;color:#A5A5A5;">30 min ago</span>
+          <span class="chip-green">Strong</span>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="window.location='signal-results.html'">
+        <span class="material-symbols-outlined" style="font-size:14px;">sensors</span>
+        Run New Signal
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SEARCH BAR ── -->
+  <div style="padding:0 24px;flex-shrink:0;">
+    <div class="search-bar">
+      <span class="material-symbols-outlined" style="font-size:20px;color:#C8C8C8;flex-shrink:0;">search</span>
+      <input type="text" placeholder="Search patents, companies, technologies…"/>
+    </div>
+  </div>
+
+  <!-- ── PANEL A: Saved Projects | Archived Projects ── -->
+  <div style="padding:16px 24px 0;flex-shrink:0;">
+    <div style="display:flex;align-items:flex-end;gap:3px;">
+      <button class="file-tab active" id="tab-projects" onclick="switchProjects('projects')">Saved Projects</button>
+      <button class="file-tab inactive" id="tab-archived" onclick="switchProjects('archived')">Archived Projects</button>
+    </div>
+    <div class="panel">
+
+      <!-- ─ Saved Projects content ─ -->
+      <div id="content-projects">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid rgba(198,198,198,0.1);">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.12em;">4 Projects</span>
+          <button class="btn-ghost">
+            <span class="material-symbols-outlined" style="font-size:12px;">add</span>
+            New
+          </button>
+        </div>
+        <div class="project-grid">
+
+          <div class="project-card selected" onclick="selectCard(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#252525;line-height:1.2;">Battery IP Deep Dive</span>
+              <span class="mono" style="font-size:8px;color:#C0C0C0;flex-shrink:0;margin-top:2px;">2 days ago</span>
+            </div>
+            <p style="font-size:11px;color:#8A8A8A;line-height:1.4;margin-bottom:8px;">Tracking IP landscape across solid-state battery and electrolyte tech filings.</p>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <span class="project-tag">Battery</span>
+              <span class="project-tag">Materials</span>
+              <span class="project-tag">US · TW · CN</span>
+            </div>
+          </div>
+
+          <div class="project-card" onclick="selectCard(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#252525;line-height:1.2;">Q2 Portfolio Review</span>
+              <span class="mono" style="font-size:8px;color:#C0C0C0;flex-shrink:0;margin-top:2px;">5 days ago</span>
+            </div>
+            <p style="font-size:11px;color:#8A8A8A;line-height:1.4;margin-bottom:8px;">Quarterly assessment of 9 saved companies — signal drift, confidence changes, risk updates.</p>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <span class="project-tag">Portfolio</span>
+              <span class="project-tag">Quarterly</span>
+            </div>
+          </div>
+
+          <div class="project-card" onclick="selectCard(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#252525;line-height:1.2;">FTO Clearance — Client A</span>
+              <span class="mono" style="font-size:8px;color:#C0C0C0;flex-shrink:0;margin-top:2px;">8 days ago</span>
+            </div>
+            <p style="font-size:11px;color:#8A8A8A;line-height:1.4;margin-bottom:8px;">Freedom-to-operate analysis for EV battery management technology. 3 risk flags active.</p>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <span class="project-tag">FTO</span>
+              <span class="project-tag">EV</span>
+              <span class="project-tag">Client</span>
+            </div>
+          </div>
+
+          <div class="project-card" onclick="selectCard(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#252525;line-height:1.2;">Edge AI Whitespace Map</span>
+              <span class="mono" style="font-size:8px;color:#C0C0C0;flex-shrink:0;margin-top:2px;">12 days ago</span>
+            </div>
+            <p style="font-size:11px;color:#8A8A8A;line-height:1.4;margin-bottom:8px;">Mapping whitespace in on-device inference IP — MCU, NPU, and low-power AI subsystems.</p>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <span class="project-tag">AI</span>
+              <span class="project-tag">Edge</span>
+              <span class="project-tag">Whitespace</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ─ Archived Projects content (hidden by default) ─ -->
+      <div id="content-archived" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid rgba(198,198,198,0.1);">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.12em;">2 Archived</span>
+        </div>
+        <div class="project-grid">
+
+          <div class="project-card archived">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#474747;line-height:1.2;">Photonics IP Scan — Q3</span>
+              <span class="mono" style="font-size:8px;color:#D0D0D0;flex-shrink:0;margin-top:2px;">6 weeks ago</span>
+            </div>
+            <p style="font-size:11px;color:#A5A5A5;line-height:1.4;margin-bottom:8px;">Photonic waveguide and optical interconnect patent landscape review.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;">
+              <div style="display:flex;gap:4px;">
+                <span class="project-tag">Photonics</span>
+                <span class="project-tag">Optical</span>
+              </div>
+              <button class="btn-ghost" style="font-size:8px;padding:3px 8px;color:#A5A5A5;">Restore</button>
+            </div>
+          </div>
+
+          <div class="project-card archived">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;color:#474747;line-height:1.2;">Semiconductor Benchmark</span>
+              <span class="mono" style="font-size:8px;color:#D0D0D0;flex-shrink:0;margin-top:2px;">2 months ago</span>
+            </div>
+            <p style="font-size:11px;color:#A5A5A5;line-height:1.4;margin-bottom:8px;">Competitive patent benchmarking across leading logic and memory chip assignees.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;">
+              <div style="display:flex;gap:4px;">
+                <span class="project-tag">Semiconductor</span>
+                <span class="project-tag">Benchmark</span>
+              </div>
+              <button class="btn-ghost" style="font-size:8px;padding:3px 8px;color:#A5A5A5;">Restore</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /panel A -->
+  </div>
+
+
+  <!-- ── PANEL B: Saved Companies | Saved IPs ── -->
+  <div style="padding:16px 24px 0;flex-shrink:0;">
+    <div style="display:flex;align-items:flex-end;gap:3px;">
+      <button class="file-tab active" id="tab-companies" onclick="switchCompanies('companies')">Saved Companies</button>
+      <button class="file-tab inactive" id="tab-ips" onclick="switchCompanies('ips')">Saved IPs</button>
+    </div>
+    <div class="panel">
+
+      <!-- ─ Saved Companies content ─ -->
+      <div id="content-companies">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid rgba(198,198,198,0.1);">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.12em;">9 Saved</span>
+          <button class="btn-ghost">
+            <span class="material-symbols-outlined" style="font-size:12px;">add</span>
+            Add
+          </button>
+        </div>
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;padding:7px 14px;border-bottom:1px solid rgba(198,198,198,0.08);align-items:center;">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Company</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Signal</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Added</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Patents</span>
+          <span></span>
+          <span></span>
+        </div>
+        <!-- Rows -->
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#22c55e;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Voltara Systems</span></div>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">30 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">47 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#eab308;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">NeuralEdge Inc.</span></div>
+          <span class="chip-yellow">Moderate</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">28 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">23 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#ef4444;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Rimac IP Holdings</span></div>
+          <span class="chip-red">Weak</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">25 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">8 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#22c55e;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Sievert Technologies</span></div>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">22 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">58 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#eab308;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Lumiq Corp.</span></div>
+          <span class="chip-yellow">Moderate</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">18 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">30 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#22c55e;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Axion Materials</span></div>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">14 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">34 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#eab308;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Halotek Systems</span></div>
+          <span class="chip-yellow">Moderate</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">10 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">19 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,198,198,0.1);cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#ef4444;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Fenris Energy</span></div>
+          <span class="chip-red">Weak</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">6 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">5 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px 60px 80px 80px 70px;gap:10px;align-items:center;padding:9px 14px;cursor:pointer;transition:background 0.1s;" onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="company-dot" style="background:#22c55e;flex-shrink:0;"></div><span style="font-size:13px;font-weight:600;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Orion Semiconductors</span></div>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#C0C0C0;">2 Mar</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">41 patents</span>
+          <span></span>
+          <button class="btn-ghost" style="padding:3px 7px;">View →</button>
+        </div>
+      </div>
+
+      <!-- ─ Saved IPs content (hidden by default) ─ -->
+      <div id="content-ips" style="display:none;">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid rgba(198,198,198,0.1);">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.12em;">5 Saved Patents</span>
+          <button class="btn-ghost">
+            <span class="material-symbols-outlined" style="font-size:12px;">add</span>
+            Add
+          </button>
+        </div>
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:130px 1fr 80px 110px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid rgba(198,198,198,0.08);">
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Patent No.</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Title</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Signal</span>
+          <span class="mono" style="font-size:8px;color:#C0C0C0;text-transform:uppercase;letter-spacing:0.1em;">Saved</span>
+          <span></span>
+        </div>
+        <!-- IP rows -->
+        <div class="ip-row">
+          <span class="mono" style="font-size:10px;font-weight:500;color:#474747;">US 11,234,567</span>
+          <span style="font-size:12px;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Solid-state electrolyte coating via atomic layer deposition">Solid-state electrolyte coating via ALD</span>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">30 Mar 2026</span>
+          <button class="btn-ghost" style="padding:2px 6px;">View →</button>
+        </div>
+        <div class="ip-row">
+          <span class="mono" style="font-size:10px;font-weight:500;color:#474747;">US 10,987,654</span>
+          <span style="font-size:12px;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Neural inference accelerator with sub-5W power envelope">Neural inference accelerator sub-5W</span>
+          <span class="chip-yellow">Moderate</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">28 Mar 2026</span>
+          <button class="btn-ghost" style="padding:2px 6px;">View →</button>
+        </div>
+        <div class="ip-row">
+          <span class="mono" style="font-size:10px;font-weight:500;color:#474747;">TW 202312345</span>
+          <span style="font-size:12px;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Automated visual inspection system for PCB manufacturing defects">Automated PCB visual inspection system</span>
+          <span class="chip-green">Strong</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">22 Mar 2026</span>
+          <button class="btn-ghost" style="padding:2px 6px;">View →</button>
+        </div>
+        <div class="ip-row">
+          <span class="mono" style="font-size:10px;font-weight:500;color:#474747;">US 11,456,789</span>
+          <span style="font-size:12px;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Silicon photonic waveguide with low-loss butt-coupling interface">Silicon photonic waveguide low-loss</span>
+          <span class="chip-yellow">Moderate</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">18 Mar 2026</span>
+          <button class="btn-ghost" style="padding:2px 6px;">View →</button>
+        </div>
+        <div class="ip-row">
+          <span class="mono" style="font-size:10px;font-weight:500;color:#474747;">CN 2023456789A</span>
+          <span style="font-size:12px;color:#252525;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Battery management system with thermal runaway prevention circuit">Battery mgmt thermal runaway prevention</span>
+          <span class="chip-red">Weak</span>
+          <span class="mono" style="font-size:9px;color:#A5A5A5;">15 Mar 2026</span>
+          <button class="btn-ghost" style="padding:2px 6px;">View →</button>
+        </div>
+      </div>
+
+    </div><!-- /panel B -->
+  </div>
+
+
+  <!-- ── SEARCH HISTORY ── -->
+  <div style="padding:16px 24px 24px;flex-shrink:0;">
+    <div class="panel-bare">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 9px;border-bottom:1px solid rgba(198,198,198,0.1);">
+        <span class="mono" style="font-size:8px;color:#A5A5A5;text-transform:uppercase;letter-spacing:0.18em;">Search History</span>
+        <a href="signal-results.html" class="btn-ghost" style="padding:3px 8px;text-decoration:none;">View All</a>
+      </div>
+
+      <div class="timeline-wrap">
+
+        <!-- Entry 1 — in progress -->
+        <div class="timeline-entry">
+          <div class="timeline-time">just now</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#C0C0C0;border:1.5px solid #E8E8E8;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="font-size:12px;font-weight:600;color:#B0B0B0;font-style:italic;">Running signal…</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C8C8C8;">Solid-state battery electrolyte</span>
+          </div>
+        </div>
+
+        <!-- Entry 2 -->
+        <div class="timeline-entry" onclick="window.location='signal-results.html'">
+          <div class="timeline-time">30 min</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#22c55e;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:1px;">
+              <span style="font-size:12px;font-weight:600;color:#252525;">Voltara Systems</span>
+              <span class="chip-green">Strong</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C0C0C0;">47 patents · High confidence</span>
+          </div>
+        </div>
+
+        <!-- Entry 3 -->
+        <div class="timeline-entry">
+          <div class="timeline-time">2 days</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#eab308;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:1px;">
+              <span style="font-size:12px;font-weight:600;color:#252525;">NeuralEdge Inc.</span>
+              <span class="chip-yellow">Moderate</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C0C0C0;">23 patents · Med confidence</span>
+          </div>
+        </div>
+
+        <!-- Entry 4 -->
+        <div class="timeline-entry">
+          <div class="timeline-time">5 days</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#ef4444;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:1px;">
+              <span style="font-size:12px;font-weight:600;color:#252525;">Rimac IP Holdings</span>
+              <span class="chip-red">Weak</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C0C0C0;">8 patents · High confidence</span>
+          </div>
+        </div>
+
+        <!-- Entry 5 -->
+        <div class="timeline-entry">
+          <div class="timeline-time">8 days</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#22c55e;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:1px;">
+              <span style="font-size:12px;font-weight:600;color:#252525;">Sievert Technologies</span>
+              <span class="chip-green">Strong</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C0C0C0;">58 patents · Med confidence</span>
+          </div>
+        </div>
+
+        <!-- Entry 6 -->
+        <div class="timeline-entry">
+          <div class="timeline-time">12 days</div>
+          <div class="timeline-spine">
+            <div class="timeline-dot" style="background:#eab308;"></div>
+            <div class="timeline-connector"></div>
+          </div>
+          <div class="timeline-body">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:1px;">
+              <span style="font-size:12px;font-weight:600;color:#252525;">Lumiq Corp.</span>
+              <span class="chip-yellow">Moderate</span>
+            </div>
+            <span class="mono" style="font-size:9px;color:#C0C0C0;">30 patents · Low confidence</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+
+<script>
+  // ── Projects panel tabs ──
+  function switchProjects(tab) {
+    ['projects', 'archived'].forEach(t => {
+      document.getElementById('tab-' + t).className = 'file-tab ' + (t === tab ? 'active' : 'inactive');
+      document.getElementById('content-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+  }
+
+  // ── Companies/IPs panel tabs ──
+  function switchCompanies(tab) {
+    ['companies', 'ips'].forEach(t => {
+      document.getElementById('tab-' + t).className = 'file-tab ' + (t === tab ? 'active' : 'inactive');
+      document.getElementById('content-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+  }
+
+  // ── Saved Projects nav dropdown ──
+  function toggleProjectsNav() {
+    const toggle = document.getElementById('nav-projects-toggle');
+    const sub = document.getElementById('nav-projects-sub');
+    const isOpen = sub.classList.contains('open');
+    sub.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+  }
+
+  // ── Project card selection ──
+  function selectCard(card) {
+    document.querySelectorAll('.project-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  }
+</script>
+</body>
+</html>
